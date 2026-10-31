@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brgy DocuCabinet - Resident Portal</title>
+    <link rel="stylesheet" href="resident.css">
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="brand">
+            <div class="logo">DC</div>
+            <div>
+                <h2>Brgy DocuCabinet</h2>
+                <p>Resident Portal</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- LOGIN SECTION -->
+        <section id="loginSection" class="auth-card">
+            <h1>Resident Login</h1>
+            <p class="subtitle">Sign in to request barangay documents.</p>
+
+            <form id="loginForm">
+                <label for="loginEmail">Email Address</label>
+                <input type="email" id="loginEmail" required>
+
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" required>
+
+                <button type="submit">Sign In</button>
+            </form>
+
+            <p class="switch-text">
+                Don't have an account?
+                <a href="#" id="showRegister">Create Account</a>
+            </p>
+
+            <p id="loginMessage" class="message"></p>
+        </section>
+
+        <!-- REGISTRATION SECTION -->
+        <section id="registerSection" class="auth-card hidden">
+            <h1>Create Resident Account</h1>
+            <p class="subtitle">Register to access the resident portal.</p>
+
+            <form id="registerForm">
+                <label for="registerName">Full Name</label>
+                <input type="text" id="registerName" required>
+
+                <label for="registerEmail">Email Address</label>
+                <input type="email" id="registerEmail" required>
+
+                <label for="registerPassword">Password</label>
+                <input type="password" id="registerPassword" minlength="6" required>
+
+                <label for="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" minlength="6" required>
+
+                <button type="submit">Create Account</button>
+            </form>
+
+            <p class="switch-text">
+                Already have an account?
+                <a href="#" id="showLogin">Back to Login</a>
+            </p>
+
+            <p id="registerMessage" class="message"></p>
+        </section>
+
+        <!-- RESIDENT DASHBOARD -->
+        <section id="dashboardSection" class="hidden">
+
+            <div class="welcome-card">
+                <div>
+                    <h1>Resident Dashboard</h1>
+                    <p>Welcome, <span id="residentName">Resident</span>!</p>
+                </div>
+                <button id="logoutButton" class="logout-button">
+                    Logout
+                </button>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="feature-card">
+                    <h3>Request Document</h3>
+                    <p>Submit a request for barangay documents.</p>
+                    <button id="showRequestButton">Request Document</button>
+                </div>
+
+                <div class="feature-card">
+                    <h3>My Requests</h3>
+                    <p>View your submitted document requests.</p>
+                    <button id="showRequestsButton">View Requests</button>
+                </div>
+            </div>
+
+            <!-- DOCUMENT REQUEST FORM -->
+            <section id="requestSection" class="content-card hidden">
+                <h2>Barangay Document Request</h2>
+                <p class="subtitle">
+                    Fill out the required information below.
+                </p>
+
+                <form id="requestForm">
+
+                    <div class="form-grid">
+                        <div>
+                            <label for="fullName">Full Name</label>
+                            <input type="text" id="fullName" required>
+                        </div>
+
+                        <div>
+                            <label for="age">Age</label>
+                            <input type="number" id="age" min="1" max="120" required>
+                        </div>
+
+                        <div>
+                            <label for="birthplace">Birthplace</label>
+                            <input type="text" id="birthplace" required>
+                        </div>
+
+                        <div>
+                            <label for="contactNumber">Contact Number</label>
+                            <input type="tel" id="contactNumber" placeholder="09XXXXXXXXX" required>
+                        </div>
+
+                        <div class="full-width">
+                            <label for="address">Complete Address</label>
+                            <input type="text" id="address" placeholder="House No., Street, Barangay" required>
+                        </div>
+
+                        <div class="full-width">
+                            <label for="documentType">Document Type</label>
+                            <select id="documentType" required>
+                                <option value="">Select document</option>
+                                <option value="Barangay Clearance">
+                                    Barangay Clearance
+                                </option>
+                                <option value="Certificate of Residency">
+                                    Certificate of Residency
+                                </option>
+                                <option value="Certificate of Indigency">
+                                    Certificate of Indigency
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="full-width">
+                            <label for="purpose">Purpose of Request</label>
+                            <textarea id="purpose" rows="4" placeholder="Explain why you need this document" required></textarea>
+                        </div>
+                    </div>
+
+                    <button type="submit">Submit Request</button>
+                    <button type="button" id="cancelRequestButton" class="secondary-button">
+                        Cancel
+                    </button>
+                </form>
+
+                <p id="requestMessage" class="message"></p>
+            </section>
+
+            <!-- REQUEST HISTORY -->
+            <section id="requestsSection" class="content-card hidden">
+                <div class="section-heading">
+                    <h2>My Document Requests</h2>
+                    <button id="refreshRequestsButton" class="secondary-button">
+                        Refresh
+                    </button>
+                </div>
+
+                <div id="requestsList">
+                    <p>No requests to display.</p>
+                </div>
+            </section>
+
+        </section>
+    </main>
+
+    <footer>
+        <p>Brgy DocuCabinet | Resident Document Request System</p>
+    </footer>
+
+    <!-- Supabase JavaScript Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="resident_app.js"></script>
+
+</body>
+
+</html>
