@@ -1,0 +1,93 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Smart Barangay Document System</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--tx:#1b2430;--mut:#667085;--bd:#e2e5ea;--pr:#1d5fd1;--prt:#fff;--ok:#18794e;--wr:#b54708;--er:#c0362c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12161c;--card:#1b212a;--tx:#e8ecf2;--mut:#98a2b3;--bd:#2d3542;--pr:#5b93f0;--prt:#0b1220;--ok:#4ac08a;--wr:#f0a35a;--er:#f2766d}}
+:root[data-theme="dark"]{--bg:#12161c;--card:#1b212a;--tx:#e8ecf2;--mut:#98a2b3;--bd:#2d3542;--pr:#5b93f0;--prt:#0b1220;--ok:#4ac08a;--wr:#f0a35a;--er:#f2766d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+.w{max-width:880px;margin:0 auto;padding:16px}
+header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:14px}
+h1{font-size:18px;margin:0}h2{font-size:16px;margin:0 0 10px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:14px}
+.g{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+label{display:block;font-size:13px;color:var(--mut);margin-bottom:3px}
+input,select,textarea{width:100%;padding:9px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
+button{padding:9px 14px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--tx);font:inherit;cursor:pointer}
+button.p{background:var(--pr);color:var(--prt);border-color:var(--pr)}button.s{padding:5px 9px;font-size:13px}
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}.tabs button.on{background:var(--pr);color:var(--prt)}
+.home{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.home .card{cursor:pointer;text-align:center;padding:28px 16px}.home .card:hover{border-color:var(--pr)}
+.b{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;border:1px solid currentColor}
+.Pending{color:var(--wr)}.Processing,.Ready{color:var(--pr)}.Released{color:var(--ok)}.Rejected{color:var(--er)}
+.sc{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--bd);vertical-align:top}
+.m{color:var(--mut);font-size:13px}.err{color:var(--er);font-size:13px;margin:6px 0}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px;z-index:5}
+.ov .card{max-width:620px;width:100%;max-height:90vh;overflow:auto;margin:0}
+.cert{background:#fff;color:#111;border:2px double #444;padding:24px;font-family:Georgia,serif;text-align:center}
+.cert p{text-align:justify;text-indent:2em;line-height:1.7}.cert h3{margin:4px 0}
+@media print{body *{visibility:hidden}.cert,.cert *{visibility:visible}.cert{position:absolute;left:0;top:0;width:100%}}
+</style></head><body><div class="w" id="app"></div>
+<script>
+const TYPES={"Barangay Indigency":"is known to belong to an indigent family in this barangay","Certificate of Residency":"is a bonafide resident of this barangay","Barangay Clearance":"has no derogatory record on file in this barangay","Certificate of Good Moral Character":"is of good moral character and a law-abiding member of this community"};
+const FLOW=["Pending","Processing","Ready","Released"];
+let mem={users:[],reqs:[],fb:[]};
+function load(){try{const d=JSON.parse(localStorage.getItem("brgy")||"null");if(d)mem=d}catch(e){}}
+function save(){try{localStorage.setItem("brgy",JSON.stringify(mem))}catch(e){}}
+load();
+let S={mode:null,user:null,staff:false,tab:"new",auth:"login",err:"",flt:"All"};
+const $=id=>document.getElementById(id),v=id=>($(id)?$(id).value.trim():"");
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fd=t=>new Date(t).toLocaleDateString("en-PH",{year:"numeric",month:"short",day:"numeric"});
+const lbl=s=>s==="Ready"?"Ready for pickup":s;
+function go(m){S={...S,mode:m,user:null,staff:false,tab:m==="res"?"new":"queue",err:"",auth:"login"};R()}
+function head(t,out){return `<header><h1>${t}</h1><span>${out?`<button class="s" onclick="go(null)">Log out</button>`:`<button class="s" onclick="go(null)">&larr; Home</button>`}</span></header>`}
+function R(){const a=$("app");
+ if(!S.mode)a.innerHTML=`<header><h1>Smart Barangay Document System</h1></header><p class="m">Request barangay documents online and track them until pickup.</p><div class="home"><div class="card" onclick="go('res')"><h2>Resident Portal</h2><p class="m">Create an account, request documents, track status, send feedback.</p></div><div class="card" onclick="go('staff')"><h2>Barangay Staff Portal</h2><p class="m">Review and process residents&rsquo; requests.</p></div></div>`;
+ else if(S.mode==="res")a.innerHTML=S.user?resApp():resAuth();
+ else a.innerHTML=S.staff?staffApp():staffAuth();}
+function resAuth(){const L=S.auth==="login";
+ return head("Resident Portal")+`<div class="card"><div class="tabs"><button class="${L?"on":""}" onclick="S.auth='login';S.err='';R()">Log in</button><button class="${!L?"on":""}" onclick="S.auth='reg';S.err='';R()">Create account</button></div>`+(L?
+ `<div class="g"><div><label>Username</label><input id="lu"></div><div><label>Password</label><input id="lp" type="password"></div></div><div class="err">${S.err}</div><button class="p" onclick="login()">Log in</button>`:
+ `<div class="g"><div><label>Full name</label><input id="rn"></div><div><label>Address</label><input id="ra"></div><div><label>Birthday</label><input id="rb" type="date"></div><div><label>Birthplace</label><input id="rpb"></div><div><label>Username</label><input id="ru"></div><div><label>Password (min 6)</label><input id="rp" type="password"></div></div><div class="err">${S.err}</div><button class="p" onclick="reg()">Create account</button>`)+`</div>`}
+function age(b){const d=new Date(b),n=new Date();let a=n.getFullYear()-d.getFullYear();if(n<new Date(n.getFullYear(),d.getMonth(),d.getDate()))a--;return a}
+function reg(){const u={name:v("rn"),addr:v("ra"),bday:v("rb"),pob:v("rpb"),user:v("ru").toLowerCase(),pass:$("rp").value};
+ if(!u.name||!u.addr||!u.bday||!u.pob||!u.user||u.pass.length<6){S.err="Please fill in every field (password at least 6 characters).";return R()}
+ if(mem.users.some(x=>x.user===u.user)){S.err="That username is taken.";return R()}
+ mem.users.push(u);save();S.user=u;S.err="";R()}
+function login(){const u=mem.users.find(x=>x.user===v("lu").toLowerCase()&&x.pass===$("lp").value);
+ if(!u){S.err="Wrong username or password.";return R()}S.user=u;S.err="";R()}
+function resApp(){const u=S.user,T=S.tab,mine=mem.reqs.filter(r=>r.user===u.user).reverse();
+ const tb=(k,t)=>`<button class="${T===k?"on":""}" onclick="S.tab='${k}';S.err='';R()">${t}</button>`;
+ let b="";
+ if(T==="new")b=`<div class="card"><h2>New document request</h2><div class="g"><div><label>Document</label><select id="dt">${Object.keys(TYPES).map(t=>`<option>${t}</option>`).join("")}</select></div><div><label>Name</label><input value="${esc(u.name)}" disabled></div><div><label>Age</label><input value="${age(u.bday)}" disabled></div><div><label>Address</label><input value="${esc(u.addr)}" disabled></div><div><label>Birthday</label><input value="${esc(u.bday)}" disabled></div><div><label>Birthplace</label><input value="${esc(u.pob)}" disabled></div></div><label style="margin-top:10px">Purpose of request</label><textarea id="pp" rows="3" placeholder="e.g. scholarship application, medical assistance, employment"></textarea><div class="err">${S.err}</div><button class="p" onclick="submitReq()">Submit request</button></div>`;
+ else if(T==="mine")b=`<div class="card"><h2>My requests</h2>${mine.length?`<div class="sc"><table><tr><th>Tracking no.</th><th>Document</th><th>Date</th><th>Status</th><th></th></tr>${mine.map(r=>`<tr><td>${r.id}</td><td>${r.type}<div class="m">${esc(r.purpose)}</div></td><td>${fd(r.at)}</td><td><span class="b ${r.status}">${lbl(r.status)}</span>${r.remarks?`<div class="m">${esc(r.remarks)}</div>`:""}</td><td>${r.status==="Ready"||r.status==="Released"?`<button class="s" onclick="cert('${r.id}')">View</button>`:""}</td></tr>`).join("")}</table></div>`:`<p class="m">No requests yet.</p>`}</div>`;
+ else b=`<div class="card"><h2>Feedback</h2><label>Related request (optional)</label><select id="fr"><option value="">General feedback</option>${mine.map(r=>`<option value="${r.id}">${r.id} &ndash; ${r.type}</option>`).join("")}</select><label style="margin-top:10px">Rating</label><select id="fs"><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select><label style="margin-top:10px">Your feedback</label><textarea id="fm" rows="3"></textarea><div class="err">${S.err}</div><button class="p" onclick="sendFb()">Send feedback</button></div>`;
+ return head("Welcome, "+esc(u.name.split(" ")[0]),1)+`<div class="tabs">${tb("new","New request")}${tb("mine","My requests ("+mine.length+")")}${tb("fb","Feedback")}</div>`+b}
+function submitReq(){const p=v("pp");if(!p){S.err="Please state the purpose of your request.";return R()}
+ const id="BRGY-"+new Date().toISOString().slice(2,10).replace(/-/g,"")+"-"+Math.floor(1000+Math.random()*9000);
+ mem.reqs.push({id,user:S.user.user,name:S.user.name,addr:S.user.addr,bday:S.user.bday,pob:S.user.pob,type:v("dt"),purpose:p,at:Date.now(),status:"Pending",remarks:""});
+ save();S.tab="mine";S.err="";R()}
+function sendFb(){const m=v("fm");if(!m){S.err="Please write your feedback.";return R()}
+ mem.fb.push({user:S.user.name,req:v("fr"),rate:v("fs"),msg:m,at:Date.now()});save();S.tab="mine";R();alert("Thank you for your feedback!")}
+function staffAuth(){return head("Barangay Staff Portal")+`<div class="card"><div class="g"><div><label>Staff ID</label><input id="su"></div><div><label>Password</label><input id="sp" type="password"></div></div><div class="err">${S.err}</div><button class="p" onclick="slogin()">Log in</button><p class="m">Demo account: staff / staff123</p></div>`}
+function slogin(){if(v("su")==="staff"&&$("sp").value==="staff123"){S.staff=true;S.err="";R()}else{S.err="Invalid staff credentials.";R()}}
+function staffApp(){load();const T=S.tab,all=mem.reqs.slice().reverse(),list=S.flt==="All"?all:all.filter(r=>r.status===S.flt);
+ const cnt=s=>mem.reqs.filter(r=>r.status===s).length;
+ const tb=(k,t)=>`<button class="${T===k?"on":""}" onclick="S.tab='${k}';R()">${t}</button>`;
+ let b;
+ if(T==="queue")b=`<div class="card"><div class="g" style="margin-bottom:10px"><div><label>Filter by status</label><select onchange="S.flt=this.value;R()">${["All",...FLOW,"Rejected"].map(s=>`<option ${S.flt===s?"selected":""} value="${s}">${s==="All"?"All ("+mem.reqs.length+")":lbl(s)+" ("+cnt(s)+")"}</option>`).join("")}</select></div></div>${list.length?`<div class="sc"><table><tr><th>Tracking no.</th><th>Resident</th><th>Document</th><th>Status</th><th>Action</th></tr>${list.map(r=>`<tr><td>${r.id}<div class="m">${fd(r.at)}</div></td><td>${esc(r.name)}<div class="m">${esc(r.addr)}</div></td><td>${r.type}<div class="m">${esc(r.purpose)}</div></td><td><span class="b ${r.status}">${lbl(r.status)}</span></td><td>${act(r)}</td></tr>`).join("")}</table></div>`:`<p class="m">No requests found.</p>`}</div>`;
+ else b=`<div class="card"><h2>Resident feedback</h2>${mem.fb.length?mem.fb.slice().reverse().map(f=>`<p><b>${esc(f.user)}</b> &middot; ${"&#9733;".repeat(+f.rate)} <span class="m">${fd(f.at)}${f.req?" &middot; "+f.req:""}</span><br>${esc(f.msg)}</p>`).join(""):`<p class="m">No feedback yet.</p>`}</div>`;
+ return head("Staff dashboard",1)+`<div class="tabs">${tb("queue","Requests")}${tb("fb","Feedback ("+mem.fb.length+")")}<button class="s" onclick="R()">Refresh</button></div>`+b}
+function act(r){const i=FLOW.indexOf(r.status),n=FLOW[i+1],B=[];
+ if(r.status==="Rejected")return `<span class="m">${esc(r.remarks)}</span>`;
+ if(n)B.push(`<button class="s p" onclick="setS('${r.id}','${n}')">${n==="Ready"?"Mark ready":n==="Processing"?"Start processing":"Release"}</button>`);
+ if(r.status==="Pending"||r.status==="Processing")B.push(`<button class="s" onclick="rej('${r.id}')">Reject</button>`);
+ if(i>=2)B.push(`<button class="s" onclick="cert('${r.id}')">Certificate</button>`);
+ return B.join(" ")}
+function setS(id,s){load();const r=mem.reqs.find(x=>x.id===id);if(r){r.status=s;save()}R()}
+function rej(id){const m=prompt("Reason for rejection:");if(m===null)return;load();const r=mem.reqs.find(x=>x.id===id);if(r){r.status="Rejected";r.remarks="Rejected: "+(m||"No reason given");save()}R()}
+function cert(id){load();const r=mem.reqs.find(x=>x.id===id);if(!r)return;
+ const d=document.createElement("div");d.className="ov";d.id="ov";
+ d.innerHTML=`<div class="card"><div class="cert"><p class="m" style="text-indent:0;text-align:center;color:#555">Republic of the Philippines<br>Office of the Barangay Captain</p><h3>${r.type.toUpperCase()}</h3><p>TO WHOM IT MAY CONCERN:</p><p>This is to certify that <b>${esc(r.name.toUpperCase())}</b>, ${age(r.bday)} years old, born on ${fd(r.bday)} at ${esc(r.pob)}, residing at ${esc(r.addr)}, ${TYPES[r.type]}.</p><p>This certification is issued upon the request of the above-named person for <b>${esc(r.purpose)}</b>.</p><p>Issued this ${fd(Date.now())}.</p><p style="text-indent:0;text-align:right;margin-top:40px">_______________________<br>Barangay Captain</p><p class="m" style="text-indent:0;text-align:left;color:#555">Ref: ${r.id}</p></div><div style="margin-top:10px;display:flex;gap:8px"><button class="p" onclick="window.print()">Print</button><button onclick="$('ov').remove()">Close</button></div></div>`;
+ document.body.appendChild(d)}
+R();
+</script></body></html>
